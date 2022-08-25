@@ -75,6 +75,10 @@ The constructor can take a configuration object that may contain any of the foll
 
 `processingFrequency` is the period in milliseconds between when the queues are checked for new tasks. Defaults to `30`.
 
+`priorities` is a list of possible priorities ordered from high to low. Defaults to `['high', 'mid', 'low']`
+
+`defaultPriority` Takes a value from the middle of `priorities` list when is not specified. `'mid'` for default priorities list.
+
 #### start()
 
 Starts the processing loop for the queue; tasks can be added and executed.
@@ -100,7 +104,7 @@ This function gets called once every `processingFrequency` milliseconds. It insp
 #### new AsyncTask(options = {})
 The constructor can take a configuration object that may contain any of the following keys:
 
-`priority` is the relative priority of this task compared to other tasks in the queue. Valid values are `low`, `mid`, and `high`; defaults to `mid`.
+`priority` is the relative priority of this task compared to other tasks in the queue. Default value can be specified in AsyncPriorityQueue constructor.
 
 `callback` is the function to be called when the task is executed. `callback` must be specified and must return a promise.
 

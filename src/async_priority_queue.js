@@ -1,8 +1,18 @@
 const defer = require('promise-defer');
 
-const AsyncPriorityQueue = (config = {}) => {
-  const {debug, maxParallel, processingFrequency} = Object.assign({debug: false, maxParallel: 6, processingFrequency: 30}, config);
-  let q = {low: [], mid: [], high: []}, active = [], interval;
+const AsyncPriorityQueue = ({
+  debug = false,
+  maxParallel = 6,
+  processingFrequency = 30,
+  priorities = ['high', 'mid', 'low'],
+  defaultPriority = priorities[Math.floor(priorities.length / 2)],
+} = {}) => {
+  let q = priorities.reduce((acc, priority) => {
+    acc[priority] = [];
+    return acc;
+  }, {});
+
+  let active = [], interval;
   debug && console.log(`instantiating AsyncPriorityQueue with max parallelism of ${maxParallel} and processingFrequency of ${processingFrequency} ms`);
 
   const cleanup = (task) => () => {
@@ -14,14 +24,18 @@ const AsyncPriorityQueue = (config = {}) => {
     start() { interval = setInterval(this.processQueue, processingFrequency); },
     stop() { interval && clearInterval(interval); },
     clear(priority) { q[priority] = []; },
-    enqueue(task) { q[task.priority] && q[task.priority].unshift(task) || console.error(`Invalid priority: ${task.priority}. Please use 'low' 'mid' or 'high'`); },
+    enqueue(task) {
+      const { priority = defaultPriority} = task;
+      q[priority] && q[priority].unshift(task) || console.error(`Invalid priority: ${priority}. Possible values: '${priorities.join('\', \'')}'`);
+    },
     processQueue() {
       debug && console.log('processing task queue');
       debug && console.log('active:', active.length);
       if (active.length <= maxParallel) {
-        debug && console.log(`high: ${q.high.length}, mid: ${q.mid.length}, low: ${q.low.length}`);
+        debug && console.log(priorities.map((p) => `${p}: ${q[p].length}`).join(', '));
 
-        let activeTask = q.high.length > 0 ? q.high.pop() : (q.mid.length > 0 ? q.mid.pop() : q.low.pop());
+        const maxPriorityWithTasks = priorities.find((p) => q[p].length > 0);
+        let activeTask = q[maxPriorityWithTasks] && q[maxPriorityWithTasks].pop();
         if (activeTask) {
           debug && console.log('executing new task');
           active.push(activeTask);
@@ -33,7 +47,7 @@ const AsyncPriorityQueue = (config = {}) => {
 };
 
 const AsyncTask = (config = {}) => {
-  const {priority, callback} = Object.assign({priority: 'mid'}, config);
+  const {priority, callback} = config;
   const deferred = defer();
   return {
     priority,
